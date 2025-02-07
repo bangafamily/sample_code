@@ -1,3 +1,30 @@
-//div[(@data-automationid='DetailsRow') and contains(@aria-label, 'text')]//i[(@data-icon-name='CircleRing')]
+const fs = require('fs');
+const path = require('path');
 
-//button[@name='Download']
+module.exports = function (newman, options) {
+    newman.on('request', function (err, args) {
+        if (err) {
+            console.error(err);
+            return;
+        }
+
+        // Extract response body and ensure it's a string
+        const response = args.response.stream.toString();
+        
+        // Get iteration data (e.g., parameter name)
+        let paramName = args.item.name.replace(/\s+/g, '_'); // Use test name as fallback
+        if (args.execution.executions[0].context.values) {
+            let paramEnv = args.execution.executions[0].context.values.reference["param_name"];
+            if (paramEnv) {
+                paramName = paramEnv.replace(/\s+/g, '_'); // Sanitize file name
+            }
+        }
+
+        // Define output file name
+        const fileName = `response_${paramName}.json`;
+
+        // Write response to file
+        fs.writeFileSync(path.join(__dirname, fileName), response, 'utf8');
+        console.log(`Response saved to ${fileName}`);
+    });
+};
